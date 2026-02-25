@@ -5,6 +5,16 @@ export async function GET() {
   try {
     const supabaseAdmin = getSupabaseAdmin();
     const { data: cap } = await supabaseAdmin.from('capital_structure').select('*').limit(1).single();
+    
+    const defaultCap = {
+      total_assets: 0,
+      retained_earnings: 0,
+      owner_equity: 0,
+      total_liabilities: 0
+    };
+
+    const finalCap = cap || defaultCap;
+
     const { data: categories } = await supabaseAdmin.from('categories').select('*');
     const { data: lowStock } = await supabaseAdmin.from('inventory').select('*, categories(name)').lt('current_stock', 10); // Simple threshold
     
@@ -18,14 +28,14 @@ export async function GET() {
     const totalAllocatedCapital = categories?.reduce((acc, cat) => acc + Number(cat.allocated_capital), 0) || 0;
 
     return NextResponse.json({
-      capital: cap,
-      categories,
-      lowStock,
-      recentSales,
+      capital: finalCap,
+      categories: categories || [],
+      lowStock: lowStock || [],
+      recentSales: recentSales || [],
       summary: {
         totalRevenue,
         totalAllocatedCapital,
-        roi: totalRevenue > 0 ? ((cap.retained_earnings / totalAllocatedCapital) * 100).toFixed(2) : 0
+        roi: totalRevenue > 0 && totalAllocatedCapital > 0 ? ((finalCap.retained_earnings / totalAllocatedCapital) * 100).toFixed(2) : 0
       }
     });
   } catch (error: any) {

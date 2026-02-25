@@ -83,7 +83,7 @@ export default function SalesPage() {
               <div key={item.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex justify-between items-center">
                 <div>
                   <p className="font-bold text-slate-900">{item.name}</p>
-                  <p className="text-xs text-slate-500">{item.sku} • {item.category?.name}</p>
+                  <p className="text-xs text-slate-500">{item.sku} • {item.categories?.name}</p>
                   <p className="text-sm font-bold text-emerald-600 mt-2">${item.selling_price}</p>
                   <p className="text-[10px] text-slate-400">Stock: {item.current_stock}</p>
                 </div>

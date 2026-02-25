@@ -17,7 +17,7 @@ export type InventoryItem = {
   minimum_stock: number;
   category_id: string;
   created_at: string;
-  category?: Category;
+  categories?: Category;
 };
 
 export type Sale = {

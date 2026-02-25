@@ -40,12 +40,13 @@ export default function Dashboard() {
   }, []);
 
   if (loading) return <div className="flex items-center justify-center h-full">Loading Dashboard...</div>;
+  if (!data || !data.capital) return <div className="flex items-center justify-center h-full text-red-500">Error loading financial data. Please ensure database is initialized.</div>;
 
   const stats = [
-    { name: 'Total Assets', value: `$${data.capital.total_assets.toLocaleString()}`, icon: DollarSign, color: 'text-emerald-500' },
-    { name: 'Retained Earnings', value: `$${data.capital.retained_earnings.toLocaleString()}`, icon: TrendingUp, color: 'text-blue-500' },
-    { name: 'Total Revenue', value: `$${data.summary.totalRevenue.toLocaleString()}`, icon: ArrowUpRight, color: 'text-amber-500' },
-    { name: 'Category ROI', value: `${data.summary.roi}%`, icon: PieChartIcon, color: 'text-purple-500' },
+    { name: 'Total Assets', value: `$${(data.capital.total_assets || 0).toLocaleString()}`, icon: DollarSign, color: 'text-emerald-500' },
+    { name: 'Retained Earnings', value: `$${(data.capital.retained_earnings || 0).toLocaleString()}`, icon: TrendingUp, color: 'text-blue-500' },
+    { name: 'Total Revenue', value: `$${(data.summary?.totalRevenue || 0).toLocaleString()}`, icon: ArrowUpRight, color: 'text-amber-500' },
+    { name: 'Category ROI', value: `${data.summary?.roi || 0}%`, icon: PieChartIcon, color: 'text-purple-500' },
   ];
 
   return (

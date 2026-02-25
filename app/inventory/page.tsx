@@ -84,7 +84,7 @@ export default function InventoryPage() {
                     <p className="text-sm font-medium">{item.name}</p>
                     <p className="text-[10px] text-slate-400">{item.sku}</p>
                   </td>
-                  <td className="px-6 py-4 text-sm">{item.category?.name}</td>
+                  <td className="px-6 py-4 text-sm">{item.categories?.name}</td>
                   <td className="px-6 py-4 text-sm">
                     <span className="text-slate-400">${item.cost_price}</span> / <span className="font-bold text-emerald-600">${item.selling_price}</span>
                   </td>
