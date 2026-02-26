@@ -139,8 +139,8 @@ export default function Dashboard() {
                   <p className="text-xs text-slate-500">{item.categories.name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-amber-600">{item.current_stock} units</p>
-                  <p className="text-[10px] text-slate-400">Min: {item.minimum_stock}</p>
+                  <p className="text-sm font-bold text-amber-600">{item.stock_quantity} units</p>
+                  <p className="text-[10px] text-slate-400">Min: {item.min_quantity}</p>
                 </div>
               </div>
             ))}

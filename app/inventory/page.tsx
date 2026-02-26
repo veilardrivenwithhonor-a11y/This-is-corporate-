@@ -17,7 +17,7 @@ export default function InventoryPage() {
     name: '',
     cost_price: '',
     selling_price: '',
-    minimum_stock: '10',
+    min_quantity: '0',
     category_id: ''
   });
 
@@ -63,7 +63,7 @@ export default function InventoryPage() {
           ...newItem,
           cost_price: parseFloat(newItem.cost_price),
           selling_price: parseFloat(newItem.selling_price),
-          minimum_stock: parseInt(newItem.minimum_stock)
+          min_quantity: parseFloat(newItem.min_quantity)
         })
       });
       const result = await res.json();
@@ -75,7 +75,7 @@ export default function InventoryPage() {
         name: '',
         cost_price: '',
         selling_price: '',
-        minimum_stock: '10',
+        min_quantity: '0',
         category_id: ''
       });
       fetchData();
@@ -178,10 +178,10 @@ export default function InventoryPage() {
                   <input 
                     type="number" 
                     required
-                    value={newItem.minimum_stock}
-                    onChange={e => setNewItem({...newItem, minimum_stock: e.target.value})}
+                    value={newItem.min_quantity}
+                    onChange={e => setNewItem({...newItem, min_quantity: e.target.value})}
                     className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                    placeholder="10"
+                    placeholder="0"
                   />
                 </div>
                 <div className="md:col-span-2 lg:col-span-3 flex justify-end">
@@ -240,10 +240,10 @@ export default function InventoryPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
-                      <span className={`text-sm font-bold ${item.current_stock < item.minimum_stock ? 'text-amber-600' : 'text-slate-900'}`}>
-                        {item.current_stock}
+                      <span className={`text-sm font-bold ${Number(item.stock_quantity) < Number(item.min_quantity) ? 'text-amber-600' : 'text-slate-900'}`}>
+                        {item.stock_quantity}
                       </span>
-                      {item.current_stock < item.minimum_stock && (
+                      {Number(item.stock_quantity) < Number(item.min_quantity) && (
                         <span className="px-1.5 py-0.5 bg-amber-100 text-amber-600 text-[8px] font-bold uppercase rounded">Low</span>
                       )}
                     </div>

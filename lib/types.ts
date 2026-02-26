@@ -13,8 +13,8 @@ export type InventoryItem = {
   name: string;
   cost_price: number;
   selling_price: number;
-  current_stock: number;
-  minimum_stock: number;
+  stock_quantity: number;
+  min_quantity: number;
   category_id: string;
   created_at: string;
   categories?: Category;

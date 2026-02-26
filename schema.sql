@@ -1,31 +1,57 @@
--- SQL Schema for Retail Finance Pro
+-- SQL Schema for Retail Finance Pro (Updated)
 -- Run this in your Supabase SQL Editor
 
 -- 1. Categories
-CREATE TABLE categories (
+CREATE TABLE IF NOT EXISTS categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name TEXT NOT NULL,
+    name TEXT NOT NULL UNIQUE,
     allocated_capital NUMERIC(20, 2) DEFAULT 0,
     retained_earnings NUMERIC(20, 2) DEFAULT 0,
     revenue NUMERIC(20, 2) DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Insert Default Categories
+INSERT INTO categories (name) 
+VALUES ('Oil'), ('Spare Parts'), ('Electrical Spare Parts')
+ON CONFLICT (name) DO NOTHING;
+
 -- 2. Inventory
-CREATE TABLE inventory (
+CREATE TABLE IF NOT EXISTS inventory (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sku TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
+    category_id UUID REFERENCES categories(id),
     cost_price NUMERIC(20, 2) NOT NULL,
     selling_price NUMERIC(20, 2) NOT NULL,
-    current_stock INTEGER DEFAULT 0,
-    minimum_stock INTEGER DEFAULT 10,
-    category_id UUID REFERENCES categories(id),
+    stock_quantity NUMERIC DEFAULT 0,
+    min_quantity NUMERIC DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Migration block if table already existed with different names
+DO $$ 
+BEGIN 
+    -- Rename current_stock to stock_quantity if it exists
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='inventory' AND column_name='current_stock') THEN
+        ALTER TABLE inventory RENAME COLUMN current_stock TO stock_quantity;
+        ALTER TABLE inventory ALTER COLUMN stock_quantity TYPE NUMERIC;
+    END IF;
+
+    -- Rename minimum_stock to min_quantity if it exists
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='inventory' AND column_name='minimum_stock') THEN
+        ALTER TABLE inventory RENAME COLUMN minimum_stock TO min_quantity;
+        ALTER TABLE inventory ALTER COLUMN min_quantity TYPE NUMERIC;
+    END IF;
+
+    -- Ensure category_id exists (it already does in my previous version, but let's be safe)
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='inventory' AND column_name='category_id') THEN
+        ALTER TABLE inventory ADD COLUMN category_id UUID REFERENCES categories(id);
+    END IF;
+END $$;
+
 -- 3. Sales
-CREATE TABLE sales (
+CREATE TABLE IF NOT EXISTS sales (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     total_revenue NUMERIC(20, 2) NOT NULL,
     total_cost NUMERIC(20, 2) NOT NULL,
@@ -35,7 +61,7 @@ CREATE TABLE sales (
 );
 
 -- 4. Sale Items
-CREATE TABLE sale_items (
+CREATE TABLE IF NOT EXISTS sale_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     sale_id UUID REFERENCES sales(id) ON DELETE CASCADE,
     inventory_id UUID REFERENCES inventory(id),
@@ -47,7 +73,7 @@ CREATE TABLE sale_items (
 );
 
 -- 5. Expenses
-CREATE TABLE expenses (
+CREATE TABLE IF NOT EXISTS expenses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     amount NUMERIC(20, 2) NOT NULL,
     expense_type TEXT CHECK (expense_type IN ('operating', 'stock_purchase')),
@@ -57,7 +83,7 @@ CREATE TABLE expenses (
 );
 
 -- 6. Distributions
-CREATE TABLE distributions (
+CREATE TABLE IF NOT EXISTS distributions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     amount NUMERIC(20, 2) NOT NULL,
     distributed_to TEXT NOT NULL,
@@ -65,7 +91,7 @@ CREATE TABLE distributions (
 );
 
 -- 7. Sales Archive
-CREATE TABLE sales_archive (
+CREATE TABLE IF NOT EXISTS sales_archive (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     original_sale_id UUID,
     archived_at TIMESTAMPTZ DEFAULT now(),
@@ -73,7 +99,7 @@ CREATE TABLE sales_archive (
 );
 
 -- 8. Ledger (Double-Entry)
-CREATE TABLE ledger (
+CREATE TABLE IF NOT EXISTS ledger (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     reference_id UUID NOT NULL,
     reference_type TEXT NOT NULL,
@@ -84,7 +110,7 @@ CREATE TABLE ledger (
 );
 
 -- 9. Capital Structure
-CREATE TABLE capital_structure (
+CREATE TABLE IF NOT EXISTS capital_structure (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     owner_equity NUMERIC(20, 2) DEFAULT 0,
     retained_earnings NUMERIC(20, 2) DEFAULT 0,
@@ -94,12 +120,11 @@ CREATE TABLE capital_structure (
 );
 
 -- Initial Capital Structure Row
--- Initial Capital Structure Row
 INSERT INTO capital_structure (owner_equity, retained_earnings, total_assets, total_liabilities)
 VALUES (1000000, 0, 1000000, 0)
 ON CONFLICT DO NOTHING;
 
--- FINANCIAL FUNCTIONS (RPC)
+-- FINANCIAL FUNCTIONS (RPC) - Updated for new column names
 
 -- 1. Process Sale
 CREATE OR REPLACE FUNCTION process_sale(items JSONB)
@@ -122,7 +147,7 @@ BEGIN
         SELECT * INTO v_inv FROM inventory WHERE id = v_item.inventory_id FOR UPDATE;
         
         IF NOT FOUND THEN RAISE EXCEPTION 'Inventory item % not found', v_item.inventory_id; END IF;
-        IF v_inv.current_stock < v_item.quantity THEN RAISE EXCEPTION 'Insufficient stock for %', v_inv.name; END IF;
+        IF v_inv.stock_quantity < v_item.quantity THEN RAISE EXCEPTION 'Insufficient stock for %', v_inv.name; END IF;
 
         INSERT INTO sale_items (sale_id, inventory_id, quantity, price, cost, profit)
         VALUES (
@@ -138,7 +163,7 @@ BEGIN
         v_total_cost := v_total_cost + (v_inv.cost_price * v_item.quantity);
         
         -- Update Inventory
-        UPDATE inventory SET current_stock = current_stock - v_item.quantity WHERE id = v_item.inventory_id;
+        UPDATE inventory SET stock_quantity = stock_quantity - v_item.quantity WHERE id = v_item.inventory_id;
         
         -- Update Category Stats
         UPDATE categories SET 
@@ -253,7 +278,7 @@ BEGIN
     END IF;
 
     UPDATE categories SET allocated_capital = allocated_capital - v_total_cost WHERE id = v_inv.category_id;
-    UPDATE inventory SET current_stock = current_stock + p_quantity WHERE id = p_inventory_id;
+    UPDATE inventory SET stock_quantity = stock_quantity + p_quantity WHERE id = p_inventory_id;
 
     INSERT INTO expenses (amount, expense_type, category_id, note)
     VALUES (v_total_cost, 'stock_purchase', v_inv.category_id, 'Restock ' || p_quantity || ' units of ' || v_inv.name);
@@ -275,7 +300,7 @@ BEGIN
 
     FOR v_item IN SELECT * FROM sale_items WHERE sale_id = p_sale_id
     LOOP
-        UPDATE inventory SET current_stock = current_stock + v_item.quantity WHERE id = v_item.inventory_id;
+        UPDATE inventory SET stock_quantity = stock_quantity + v_item.quantity WHERE id = v_item.inventory_id;
         
         UPDATE categories SET 
             revenue = revenue - (v_item.price * v_item.quantity),

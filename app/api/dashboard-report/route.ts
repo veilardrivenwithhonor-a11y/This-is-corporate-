@@ -16,7 +16,8 @@ export async function GET() {
     const finalCap = cap || defaultCap;
 
     const { data: categories } = await supabaseAdmin.from('categories').select('*');
-    const { data: lowStock } = await supabaseAdmin.from('inventory').select('*, categories(name)').lt('current_stock', 10); // Simple threshold
+    const { data: allInventory } = await supabaseAdmin.from('inventory').select('*, categories(name)');
+    const lowStock = allInventory?.filter(item => Number(item.stock_quantity) < Number(item.min_quantity)) || [];
     
     const { data: recentSales } = await supabaseAdmin
       .from('sales')

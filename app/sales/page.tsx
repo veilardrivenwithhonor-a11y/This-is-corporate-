@@ -85,11 +85,11 @@ export default function SalesPage() {
                   <p className="font-bold text-slate-900">{item.name}</p>
                   <p className="text-xs text-slate-500">{item.sku} • {item.categories?.name}</p>
                   <p className="text-sm font-bold text-emerald-600 mt-2">${item.selling_price}</p>
-                  <p className="text-[10px] text-slate-400">Stock: {item.current_stock}</p>
+                  <p className="text-[10px] text-slate-400">Stock: {item.stock_quantity}</p>
                 </div>
                 <button 
                   onClick={() => addToCart(item)}
-                  disabled={item.current_stock === 0}
+                  disabled={item.stock_quantity === 0}
                   className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:bg-slate-200 disabled:cursor-not-allowed transition-colors"
                 >
                   <Plus size={20} />
